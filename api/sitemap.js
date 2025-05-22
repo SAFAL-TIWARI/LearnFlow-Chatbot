@@ -13,53 +13,34 @@ const __dirname = dirname(__filename);
  */
 export default function handleSitemapRequest(req, res) {
   try {
-    // Define paths to possible sitemap locations
-    const distSitemapPath = path.join(__dirname, '../../dist/sitemap.xml');
-    const publicSitemapPath = path.join(__dirname, '../../public/sitemap.xml');
-    const rootSitemapPath = path.join(__dirname, '../../sitemap.xml');
-    
-    // Check which sitemap file exists and use that one
-    let sitemapPath;
-    if (fs.existsSync(distSitemapPath)) {
-      sitemapPath = distSitemapPath;
-    } else if (fs.existsSync(publicSitemapPath)) {
-      sitemapPath = publicSitemapPath;
-    } else if (fs.existsSync(rootSitemapPath)) {
-      sitemapPath = rootSitemapPath;
-    } else {
-      // If no sitemap file exists, generate a basic one
-      const sitemapContent = generateBasicSitemap();
-      
-      // Set appropriate headers
-      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
-      
-      // Send the generated sitemap
-      return res.send(sitemapContent);
-    }
-    
-    // Read the sitemap file
-    const sitemapContent = fs.readFileSync(sitemapPath, 'utf8');
-    
+    console.log('Sitemap request received');
+
+    // Always generate a fresh sitemap to ensure it's valid XML
+    const sitemapContent = generateSitemap();
+
     // Set appropriate headers
     res.setHeader('Content-Type', 'application/xml; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
-    
-    // Send the sitemap
-    res.send(sitemapContent);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    // Log the first 100 characters of the response for debugging
+    console.log('Sending sitemap response:', sitemapContent.substring(0, 100));
+
+    // Send the generated sitemap
+    return res.send(sitemapContent);
   } catch (error) {
     console.error('Error serving sitemap:', error);
-    res.status(500).send('Error generating sitemap');
+    res.status(500).send('<?xml version="1.0" encoding="UTF-8"?><error>Error generating sitemap</error>');
   }
 }
 
 /**
- * Generate a basic sitemap if none exists
+ * Generate a sitemap with the current date
  */
-function generateBasicSitemap() {
+function generateSitemap() {
   const domain = 'https://learn-flow-seven.vercel.app';
   const today = new Date().toISOString().split('T')[0];
-  
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
